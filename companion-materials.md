@@ -15,6 +15,8 @@ health modelling.
 (Note: I highlight areas that cannot be finalized yet, with notes like
 this)
 
+**MJ: It would be worthwhile to convert these notes into a Quarto book project, in which function documentation is linked automatically in code blocks.**
+
 <!-- omit from toc -->
 
 ## Table of Contents
@@ -196,6 +198,8 @@ sessionInfo() |> print()
 Participants will learn how to explore and modify models, and informally
 compare them with observed data.
 
+**MJ: I mention in a comment in `syllabus.md`, too, but there seems to be an initial focus on modifying existing models rather than building new models.  It seems more natural to start from a blank slate, teaching people how to construct a call to `mp_model_spec` *before* showcasing the model library and the mutation functions.  Or maybe you've assessed that starting from a blank slate would involve too much boilerplate?  If so, I trust your judgement, but maybe there *should* be an appendix for people who want to be walked through `mp_model_spec` call construction.**
+
 At the core of macpan2 are model specifications, which primarily define
 the flows between compartments and set default values for parameters.
 These specifications offer a clear and systematic way to describe the
@@ -244,6 +248,8 @@ show_models()
 
 This function displays the available models, along with their
 directories, titles, and descriptions.
+
+**MJ: You say "directories" as if it's obvious that there is an underlying directory structure.  That's not really conveyed anywhere.**
 
 To examine a specific model, such as the SIR model, load it into R:
 
@@ -320,6 +326,8 @@ from it, so you develop this skill immediately.
 |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Simple, Consistent, and General Format for Simulation Output**<br>Simulations of `macpan2` models are always returned in the same format – there are no options. This inflexibility is deliberate. The simulation data format is simple and easily adapted to whatever data organizational preferences you might have. This choice also benefits us because it means we do not need to worry about reinventing data preparation tools (many of which already exist) and focus on epidemiological modelling functionality (of which fewer options exist). [This](https://canmod.github.io/macpan2/articles/quickstart#generating-simulations) article gives a brief but full description of the data format. |
 
+**MJ: I just looked at the quickstart.  Why does the simulation data frame exclude `time=0`?**
+
 ### Relating Model Specifications to Box Diagrams
 
 Model specification objects, such as the `sir` object produced in the
@@ -327,6 +335,8 @@ previous section, are essentially textual descriptions of compartmental
 model flow diagrams. Below I print out the *during the simulation loop*
 portion of the `sir` object, and plot the corresponding flow diagram,
 highlighting the relationship between the two.
+
+**MJ: It's confusing to read that you are plotting the diagram because `mp_print_during` doesn't actually do that.**
 
 ``` r
 mp_print_during(sir)
@@ -350,6 +360,8 @@ mp_print_during(sir)
 One aspect of the previous model printout that might be unclear to you
 is the specific mathematical meaning of the `mp_per_capita_flow`
 functions, and their arguments.
+
+**MJ: Are you repeating the statement and output on purpose?**
 
 ``` r
 mp_print_during(sir)
@@ -477,6 +489,8 @@ sir |> mp_euler_multinomial() |> mp_expand() |> mp_print_during()
     ## 4: I ~ I + infection - recovery
     ## 5: R ~ R + recovery
 
+**MJ: Bug?  Why the spurious parentheses in the first formula?**
+
 Note that all [state update
 methods](https://canmod.github.io/macpan2/reference/state_updates)
 generate the same last three expressions for this `sir` model object.
@@ -495,6 +509,8 @@ the absolute flow rates per time step.
 |:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Embrace Difference Equations**<br>The original [McMasterPandemic](https://github.com/mac-theobio/McMasterPandemic) project was based entirely on discrete time models. Simulations from discrete time difference equations requires little math to implement and understand. This simplicity is nice in applied work where the barriers to real-world impact do not usually include mathematical novelty and elegance. Further, when modelling a real system it is natural to compare simulations with observed data, which are measured at discrete times anyways.<br><br>Difference equations are not without their drawbacks however. Many results in mathematical epidemiology come from ODEs and various stochastic processes, and so when using difference equations epidemiologists might be concerned that their intuition from ODEs will not hold. Difference equations can also be less stable (e.g., state variables going below zero) than ODEs, which can become a real problem when calibrating models using trajectory matching. Therefore we make it easy to check these concerns by using a [state update method](https://canmod.github.io/macpan2/reference/state_updates) like `mp_rk4()` (for a simple ODE solver) or `mp_euler_multinomial()` (for a simple process error model) to overcome these concerns whenever necessary.<br><br>When using these alternative state update methods keep in mind that they too can be thought of as difference equation model. Carefully inspect the last three lines of any of the expanded `sir` models, which constitute the same set of difference equations no matter what state update method is used. This similarity indicates that all state update methods boil down to discrete-time difference equations, but with different approaches to calculating the absolute flow rates (e.g., `infection` and `recovery`). These absolute rate variables describe the changes in the state variables (e.g., `S`, `I`, `R`) due to different processes over a single time-step, allowing for continuous change within a time-step. This means, for example, that the time-series of the `infection` variable will contain the incidence over each time-step. So, for example, if each time-step represents one week, the `infection` variable will contain weekly incidence values.<br><br>In summary, the choice of state update method will often not matter in applied work, but when it does the [state update methods](https://canmod.github.io/macpan2/reference/state_updates) make it simple to explore options. |
 
+**MJ: The difference between Euler and RK4 might not matter in applied work, but the difference between either of those and a stochastic process is pretty fundamental and does matter ... right?**
+
 | <img src="images/exercise.svg" width="120" />                                                                                                                                                                                                                                                                   |
 |:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Write out by hand the last four lines of an expanded SEIR model.<br><br>[Read](https://canmod.github.io/macpan2/articles/example_models#using-examples) the [SEIR model](https://github.com/canmod/macpan2/tree/main/inst/starter_models/seir) from the model library and test if you were correct. |
@@ -506,9 +522,13 @@ TODO: Simulate dynamics with different approaches.
 The models in the model library are intended to provide a place to
 start, so let’s get started doing this.
 
+**MJ: Is a "model" or "model specification" an R object or a file (an R script)?  As a naive reader, to this point, it's very ambiguous.  I think that you should lay out at the start of this section that there are two ways to build an object: (1) construct a new call to `mp_model_spec`, possibly by editing an existing call stored in an R script that lives somewhere; (2) use R functions to mutate an existing R object.  As a naive reader, I was confused two times.  My initial expectation was that "modifying" meant "mutating".  Then, after starting to read this section, I was convinced that "modifying" meant constructing a new call and evaluating it.  Then, I learned that "mutating" was possible all along.  So it was pretty jarring ...**
+
 | <img src="images/exercise.svg" width="120" />                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Follow the advice [here](https://canmod.github.io/macpan2/articles/example_models.html#modifying-examples) to create two copies of the [SIR](https://github.com/canmod/macpan2/tree/main/inst/starter_models/sir) model: one called SI and one called SEIR. Place both of these models in a directory on your computer called `macpan-workshop-library`. Or just do one model as time permits.<br><br>Simplify the model called SI so that it is an SI model (check your work [here](https://github.com/canmod/macpan2/tree/main/inst/starter_models/si)).<br><br>Add flows to the model called SEIR so that it becomes an SEIR model (check your work [here](https://github.com/canmod/macpan2/tree/main/inst/starter_models/seir)).<br><br>Simulate a time-series of incidence from one of these models and plot it. |
+
+**MJ: It is extremely dizzying to be continually redirected to other pages.  One ends up with several tabs open, and it becomes laborious to get through the material.  It should be a goal to make things a bit more self-contained, even if you have to repeat stuff that's already documented somewhere else.**
 
 The previous exercise described one approach to modifying existing
 models, which involves copying a directory and editing the files in that
@@ -547,6 +567,8 @@ covid_on = (release
 )
 covid_on |> head() |> print()
 ```
+
+**MJ: macpan2 should include some canonical data sets, so that users (and you, in examples, vignettes, tests, ...) can just do data(covid_on) and avoid all of this boilerplate ...**
 
     ## # A tibble: 6 × 4
     ##   province date       var             value
@@ -609,6 +631,8 @@ simulations and observed data. This will form the foundation for
 modifying the model to make it capture important features of the
 underlying processes.
 
+**MJ: Your `Inf ~ infinity ~ end` below	confused me because I thought that it was a meaningful R formula ...**
+
 ``` r
 sir_covid = mp_tmb_insert(sir
 
@@ -670,6 +694,8 @@ print(sir_covid)
 
 Now we [simulate](#simulating-dynamics) the trajectory of the `reports`
 variable in the model, and plot it against the observed data.
+
+**MJ: It's unavoidable, but I expect that you will lose a lot of people who aren't familiar with R or the tidyverse here.  It's hard to see how familiarity with R is *not* assumed, at this point ...**
 
 ``` r
 sim_early_reports = (sir_covid 
